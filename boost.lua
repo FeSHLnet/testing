@@ -1,10 +1,20 @@
 --[[
 ═══════════════════════════════════════════════════════════
-  BOOST / LAUNCH SCRIPT  v6  (النسخة النهائية)
+  BOOST / LAUNCH SCRIPT  v7
   Assetto Corsa - CSP Online Script
 ═══════════════════════════════════════════════════════════
 
   اضغط زر B ← السيارة تنطلق فوراً لأقصى سرعة
+
+  ─────────── لو الاتجاه معكوس ───────────
+
+  السيارة تنقلب / يصير وجهها للخلف؟
+      غيّر FACE_SIGN
+
+  السيارة سيدا بس تمشي للخلف؟
+      غيّر MOVE_SIGN
+
+  (كل واحد يقبل 1 أو -1 فقط)
 
   ─────────────── التركيب ───────────────
 
@@ -20,11 +30,14 @@
       [SCRIPT_1]
       SCRIPT = "رابط الـ Raw"
 
-  ملاحظة: يلغي وقت اللفة (طبيعي، ما يفرق في الهجولة)
-
 ═══════════════════════════════════════════════════════════
 --]]
 
+
+-- ══════════════ الاتجاهات ══════════════
+
+local FACE_SIGN     = -1              -- اتجاه وجه السيارة   (1 أو -1)
+local MOVE_SIGN     =  1              -- اتجاه حركة السيارة  (1 أو -1)
 
 -- ══════════════ الإعدادات ══════════════
 
@@ -58,16 +71,17 @@ local function launch()
   if car == nil then return end
 
   local targetMs = TARGET_KMH / 3.6
-  local forward  = -car.look          -- ← اتجاه الأمام الصحيح
+  local faceDir  = car.look * FACE_SIGN   -- اتجاه الوجه
+  local moveDir  = car.look * MOVE_SIGN   -- اتجاه الحركة
 
   -- رفعة خفيفة عشان الكفرات ما تعاند
   if LIFT_METERS > 0 then
     pcall(physics.setCarPosition, CAR,
-      car.position + vec3(0, LIFT_METERS, 0), forward)
+      car.position + vec3(0, LIFT_METERS, 0), faceDir)
   end
 
   -- تحديد السرعة مباشرة
-  local ok = pcall(physics.setCarVelocity, CAR, forward * targetMs)
+  local ok = pcall(physics.setCarVelocity, CAR, moveDir * targetMs)
   status = ok and "تم" or "فشل"
 end
 
@@ -81,8 +95,7 @@ function script.update(dt)
   if cooldownLeft > 0 then cooldownLeft = cooldownLeft - dt end
   if hudTimer > 0 then hudTimer = hudTimer - dt end
 
-  local speed = car.speedKmh
-
+  local speed  = car.speedKmh
   local gearOk = (not REQUIRE_GEAR) or car.gear > 0
 
   if ac.isKeyDown(BOOST_KEY)
@@ -106,9 +119,9 @@ function script.update(dt)
     ac.debug("1_status",   status)
     ac.debug("2_speed",    math.floor(speed) .. " km/h")
     ac.debug("3_gained",   math.floor(speedGained) .. " km/h")
-    ac.debug("4_gear",     car.gear)
-    ac.debug("5_cooldown", string.format("%.1f", math.max(cooldownLeft, 0)))
-    ac.debug("6_allowed",  physics.allowed and physics.allowed() or "?")
+    ac.debug("4_signs",    "face: " .. FACE_SIGN .. "  |  move: " .. MOVE_SIGN)
+    ac.debug("5_gear",     car.gear)
+    ac.debug("6_cooldown", string.format("%.1f", math.max(cooldownLeft, 0)))
   end
 end
 
